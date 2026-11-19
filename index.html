@@ -83,11 +83,34 @@ async function login(){
 }
 async function myAccount(){
   if(!token){show("Please login first");return}
-  let r=await fetch(ACC+"/account/me",{headers:{Authorization:"Bearer "+token}});
-  let d=await r.json();
-  document.getElementById("bal").innerText="₦"+(d.balance||0);
-  document.getElementById("accinfo").innerText=JSON.stringify(d);
-  show("Account loaded ✅");
+  show("Loading account...");
+  try{
+    // 1. List my accounts
+    let r = await fetch(ACC+"/accounts", {headers:{Authorization:"Bearer "+token}});
+    let d = await r.json();
+    // 2. If no account, create one
+    if(!d || d.length === 0){
+      show("No account yet, creating...");
+      let cr = await fetch(ACC+"/accounts", {
+        method:"POST",
+        headers:{"Content-Type":"application/json", Authorization:"Bearer "+token},
+        body: JSON.stringify({account_name:"Primary Account"})
+      });
+      let newId = await cr.json();
+      if(typeof newId === "string") localStorage.setItem("account_id", newId);
+      show("Account created ✅ Tap Refresh again");
+      return;
+    }
+    // 3. If have one, get details
+    let myAcc = Array.isArray(d) ? d[0] : d;
+    let accId = myAcc.id || myAcc.account_id || localStorage.getItem("account_id");
+    if(accId) localStorage.setItem("account_id", accId);
+    let r2 = await fetch(ACC+"/accounts/"+accId, {headers:{Authorization:"Bearer "+token}});
+    let full = await r2.json();
+    document.getElementById("bal").innerText = "₦" + (full.balance ?? myAcc.balance ?? 0);
+    document.getElementById("accinfo").innerText = JSON.stringify(full);
+    show("Account loaded ✅");
+  }catch(e){ show("Error: "+e.message); }
 }
 async function send(){
   let to=document.getElementById("toemail").value;
@@ -95,7 +118,7 @@ async function send(){
   let r=await fetch(TRF+"/transfer",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},body:JSON.stringify({to_email:to,amount:amt})});
   let d=await r.json(); show(JSON.stringify(d)); myAccount();
 }
-function logout(){localStorage.removeItem("token");token="";show("Logged out");}
+function logout(){localStorage.removeItem("token");token="";localStorage.removeItem("account_id");show("Logged out");}
 if(token){show("Welcome back! Tap Refresh Balance");}
 </script>
 </body>
