@@ -1,20 +1,102 @@
 <!DOCTYPE html>
-<html><head><title>NaijaBank</title></head>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NaijaBank 🇳🇬</title>
+<style>
+  *{box-sizing:border-box;font-family:Arial,sans-serif}
+  body{margin:0;background:linear-gradient(135deg,#008751,#00c853,#FFD700);min-height:100vh;padding:20px}
+  .top{text-align:center;color:white;margin:15px 0 25px}
+  .top h1{font-size:42px;margin:0;text-shadow:2px 2px 0 #006400}
+  .top p{font-size:16px;opacity:0.95}
+  .card{background:white;border-radius:20px;padding:22px;max-width:420px;margin:0 auto 18px;box-shadow:0 10px 30px rgba(0,0,0,0.25)}
+  .card h2{margin:0 0 12px;color:#008751}
+  input{width:100%;padding:14px;border:2px solid #e0e0e0;border-radius:12px;margin-bottom:12px;font-size:16px;outline:none}
+  input:focus{border-color:#008751}
+  button{width:100%;padding:14px;border:none;border-radius:12px;font-size:17px;font-weight:bold;cursor:pointer;margin-bottom:10px}
+  .btn-green{background:#008751;color:white}
+  .btn-gold{background:#FFD700;color:#006400}
+  .btn-blue{background:#1976d2;color:white}
+  .btn-purple{background:#7b1fa2;color:white}
+  .btn-orange{background:#ff6d00;color:white}
+  #msg{background:#fff3cd;border:2px solid #FFD700;border-radius:12px;padding:12px;text-align:center;font-weight:bold;min-height:45px;word-break:break-all}
+  .balance{font-size:38px;color:#008751;text-align:center;font-weight:900;margin:5px 0}
+  .small{font-size:13px;color:#666;text-align:center}
+</style>
+</head>
 <body>
-<h1>NaijaBank</h1>
-<input id="email" placeholder="email">
-<input id="pass" type="password" placeholder="password">
-<button onclick="register()">Register</button>
-<button onclick="login()">Login</button>
-<p id="out"></p>
+
+<div class="top">
+  <h1>🏦 NaijaBank 🇳🇬</h1>
+  <p>Fast • Secure • Made for Nigeria</p>
+</div>
+
+<div class="card">
+  <h2>👋 Welcome</h2>
+  <input id="email" placeholder="📧 Email e.g. test@test.com">
+  <input id="pass" type="password" placeholder="🔒 Password">
+  <button class="btn-green" onclick="register()">✨ Register</button>
+  <button class="btn-gold" onclick="login()">🔓 Login</button>
+  <div id="msg">Ready... 👇</div>
+</div>
+
+<div class="card">
+  <h2>💰 My Account</h2>
+  <div class="balance" id="bal">₦0.00</div>
+  <p class="small" id="accinfo">Login to see your account</p>
+  <button class="btn-blue" onclick="myAccount()">🔄 Refresh Balance</button>
+</div>
+
+<div class="card">
+  <h2>💸 Send Money</h2>
+  <input id="toemail" placeholder="To Email">
+  <input id="amount" type="number" placeholder="Amount e.g. 5000">
+  <button class="btn-purple" onclick="send()">🚀 Send Now</button>
+  <button class="btn-orange" onclick="logout()">🚪 Logout</button>
+</div>
+
 <script>
 const AUTH="https://naijabank-auth.onrender.com";
+const ACC="https://naijabank-account.onrender.com";
+const TRF="https://naijabank-transfer.onrender.com";
+let token=localStorage.getItem("token")||"";
+let myEmail="";
+
+function show(t){document.getElementById("msg").innerText=t}
+
 async function register(){
-  let r=await fetch(AUTH+"/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:email.value,password:pass.value,full_name:"Test User"})});
-  out.innerText=await r.text();
+  let email=document.getElementById("email").value;
+  let password=document.getElementById("pass").value;
+  show("Registering...");
+  let r=await fetch(AUTH+"/auth/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password,full_name:email})});
+  let d=await r.json();
+  show(JSON.stringify(d));
 }
 async function login(){
-  let r=await fetch(AUTH+"/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:email.value,password:pass.value})});
-  out.innerText=await r.text();
+  let email=document.getElementById("email").value;
+  let password=document.getElementById("pass").value;
+  show("Logging in...");
+  let r=await fetch(AUTH+"/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});
+  let d=await r.json();
+  if(d.access_token){token=d.access_token;myEmail=email;localStorage.setItem("token",token);show("✅ Login Success! Token saved.");myAccount();}
+  else{show(JSON.stringify(d));}
 }
-</script></body></html>
+async function myAccount(){
+  if(!token){show("Please login first");return}
+  let r=await fetch(ACC+"/account/me",{headers:{Authorization:"Bearer "+token}});
+  let d=await r.json();
+  document.getElementById("bal").innerText="₦"+(d.balance||0);
+  document.getElementById("accinfo").innerText=JSON.stringify(d);
+  show("Account loaded ✅");
+}
+async function send(){
+  let to=document.getElementById("toemail").value;
+  let amt=parseFloat(document.getElementById("amount").value);
+  let r=await fetch(TRF+"/transfer",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},body:JSON.stringify({to_email:to,amount:amt})});
+  let d=await r.json(); show(JSON.stringify(d)); myAccount();
+}
+function logout(){localStorage.removeItem("token");token="";show("Logged out");}
+if(token){show("Welcome back! Tap Refresh Balance");}
+</script>
+</body>
+</html>
