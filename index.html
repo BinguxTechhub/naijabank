@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html><head><title>NaijaBank</title></head>
+<body>
+<h1>NaijaBank</h1>
+<input id="email" placeholder="email">
+<input id="pass" type="password" placeholder="password">
+<button onclick="register()">Register</button>
+<button onclick="login()">Login</button>
+<p id="out"></p>
+<script>
+const AUTH="https://naijabank-auth.onrender.com";
+async function register(){
+  let r=await fetch(AUTH+"/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:email.value,password:pass.value,full_name:"Test User"})});
+  out.innerText=await r.text();
+}
+async function login(){
+  let r=await fetch(AUTH+"/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:email.value,password:pass.value})});
+  out.innerText=await r.text();
+}
+</script></body></html>
